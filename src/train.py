@@ -7,70 +7,112 @@ import joblib
 
 DATA_PATH = "data/session-dataset.csv"
 
-def mos_to_qoe(x):
-    if x <= 2:
-        return 0
-    elif x == 3:
-        return 1
-    else:  # 4 or 5
-        return 2
+
+# ------------------------------
+#  QoE LABEL FROM COMPOSITE SCORE
+# ------------------------------
+def compute_qoe(row):
+    class_mapping = {'low': 0, 'medium': 1, 'high': 2}
+    resolution_class = class_mapping.get(row["avg_resolution_class"], row["avg_resolution_class"])
+    bitrate_class = class_mapping.get(row["avg_bitrate_class"], row["avg_bitrate_class"])
+    stalling_class = class_mapping.get(row["stalling_class"], row["stalling_class"])
+    score = (
+        int(resolution_class)
+        + int(bitrate_class)
+        - int(stalling_class)
+    )
+
+    if score <= 0:
+        return 0        # Bad
+    elif score <= 2:
+        return 1        # Medium
+    else:
+        return 2        # Good
 
 
 def load_and_prepare():
     df = pd.read_csv(DATA_PATH)
 
-    # ---- Target Label ----
-    df["label"] = df["MOS_p1203"].apply(mos_to_qoe)
+    # --------------------
+    # TARGET LABEL: QoE
+    # --------------------
+    df["label"] = df.apply(compute_qoe, axis=1)
 
 
-    # ---- Feature Selection ----
+    # --------------------
+    # FEATURE SELECTION
+    # --------------------
+    # remove QoE-related columns
     exclude = [
-        "MOS_p1203", "startup_delay_class", "avg_resolution_class",
-        "stalling_class", "avg_bitrate_class"
+        "MOS_p1203",
+        "startup_delay_class",
+        "avg_resolution_class",
+        "stalling_class",
+        "avg_bitrate_class",
+        "label"
     ]
-    FEATURES = [c for c in df.columns if c not in exclude + ["label"]]
+
+    FEATURES = [c for c in df.columns if c not in exclude]
 
     X = df[FEATURES]
     y = df["label"]
 
-    # ---- Preprocessing ----
+    # -------------------------
+    # PREPROCESSING
+    # -------------------------
     X = X.fillna(0)
-    # Identify and one-hot encode categorical columns
-    categorical_features = X.select_dtypes(include=['object']).columns
-    X = pd.get_dummies(X, columns=categorical_features, drop_first=True)
+
+    # One-hot encode categorical features
+    categorical = X.select_dtypes(include=["object"]).columns
+    X = pd.get_dummies(X, columns=categorical, drop_first=True)
+
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
     return X_scaled, y, scaler, FEATURES
 
+
 def train():
     X, y, scaler, FEATURES = load_and_prepare()
 
-    # ---- Data split ----
+    # -------------------------
+    # TRAIN / TEST SPLIT
+    # -------------------------
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
     )
 
-    # ---- Model ----
+    # -------------------------
+    # MODEL
+    # -------------------------
     model = RandomForestClassifier(
         n_estimators=300,
         max_depth=None,
         random_state=42,
         n_jobs=-1
     )
+
     model.fit(X_train, y_train)
 
-    # ---- Save ----
+    # -------------------------
+    # SAVE MODEL COMPONENTS
+    # -------------------------
     joblib.dump(model, "models/rf_model.pkl")
     joblib.dump(scaler, "models/scaler.pkl")
     joblib.dump(FEATURES, "models/features.pkl")
 
-    # ---- Evaluation ----
+    # -------------------------
+    # EVALUATION
+    # -------------------------
     preds = model.predict(X_test)
-    print(classification_report(y_test, preds))
+    print("\n=== CLASSIFICATION REPORT ===\n")
+    print(classification_report(y_test, preds, target_names=["Bad", "Medium", "Good"]))
+
+    print("\n=== CONFUSION MATRIX ===\n")
     print(confusion_matrix(y_test, preds))
 
     return model, X_test, y_test, FEATURES
+
 
 if __name__ == "__main__":
     train()

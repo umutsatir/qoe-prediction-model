@@ -20,6 +20,7 @@ def mos_to_qoe(x):
 
 df["label"] = df["MOS_p1203"].apply(mos_to_qoe)
 
+print(df["label"].value_counts())
 # Apply same preprocessing as training
 X = df[features]
 y = df["label"]
