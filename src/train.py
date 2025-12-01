@@ -5,7 +5,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix
 import joblib
 
-DATA_PATH = "data/session-dataset.csv"
+DATA_PATH = "../data/session-dataset.csv"
 
 
 # ------------------------------
@@ -97,9 +97,9 @@ def train():
     # -------------------------
     # SAVE MODEL COMPONENTS
     # -------------------------
-    joblib.dump(model, "models/rf_model.pkl")
-    joblib.dump(scaler, "models/scaler.pkl")
-    joblib.dump(FEATURES, "models/features.pkl")
+    joblib.dump(model, "../models/rf_model.pkl")
+    joblib.dump(scaler, "../models/scaler.pkl")
+    joblib.dump(FEATURES, "../models/features.pkl")
 
     # -------------------------
     # EVALUATION

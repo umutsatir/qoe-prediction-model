@@ -2,12 +2,12 @@ import joblib
 import matplotlib.pyplot as plt
 from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
 
-model = joblib.load("models/rf_model.pkl")
-scaler = joblib.load("models/scaler.pkl")
-features = joblib.load("models/features.pkl")
+model = joblib.load("../models/rf_model.pkl")
+scaler = joblib.load("../models/scaler.pkl")
+features = joblib.load("../models/features.pkl")
 
 import pandas as pd
-df = pd.read_csv("data/session-dataset.csv")
+df = pd.read_csv("../data/session-dataset.csv")
 
 # ------------------------------
 #  QoE LABEL FROM COMPOSITE SCORE
